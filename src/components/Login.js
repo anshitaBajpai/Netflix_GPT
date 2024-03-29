@@ -2,15 +2,20 @@ import React from 'react'
 import Header from './Header'
 import {useState,useRef} from 'react'
 import { checkValidData } from '../utils/validate';
-import {createUserWithEmailAndPassword,signInWithEmailAndPassword } from "firebase/auth";
+import {createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile } from "firebase/auth";
 import{auth} from '../utils/firebase'
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { addUser } from '../utils/userSlice';
 
 
 const Login = () => {
   const [isSignInForm,setIsSigInForm]=useState(true);
   const [errorMessage,setErrorMessage]=useState(null)
+  const navigate=useNavigate();
+  const dispatch=useDispatch();
 
-
+const name=useRef(null)
   const email=useRef(null);
   const password=useRef(null);
 
@@ -26,7 +31,17 @@ if(!isSignInForm){
   createUserWithEmailAndPassword(auth, email.current.value,password.current.value)
   .then((userCredential) => {
     const user = userCredential.user;
-    console.log(user);
+    updateProfile(user, {
+      displayName: name.current.value , photoURL: "https://occ-0-4409-3646.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABYh1GXyzHI-IqH5gUm3DHnqwmPCTLO5rmui76NzrDHgzMA7or4fZQUjLBsrXzx0JiwagUlQSf7Wiu4yI-A4hfpwleGn8R3g.png?r=54d"
+    }).then(() => {
+      const {uid, email, displayName, photoURL} = auth.currentUser;
+      dispatch(addUser({uid:uid, email:email, displayName:displayName, photoURL:photoURL}))
+      navigate("/browse");
+    }).catch((error) => {
+      setErrorMessage(error.message)
+    });
+    
+    
   })
   .catch((error) => {
     const errorCode = error.code;
@@ -42,11 +57,13 @@ else{
       // Signed in 
       const user = userCredential.user;
       console.log(user)
+      navigate("/browse");
     })
     .catch((error) => {
       const errorCode = error.code;
       const errorMessage = error.message;
       setErrorMessage(errorCode + "-" + errorMessage)
+      
     });
 
 }
@@ -73,7 +90,7 @@ else{
 
     <h1 className="text-3xl font-bold px-2 leading-loose" >{isSignInForm? "Sign In" : "Sign Up"}</h1>
 
-     {!isSignInForm && (<input type="text" placeholder="Full Name" className="w-72 h-11 p-2 my-2 bg-neutral-400 bg-opacity-50 rounded-md ring-1 ring-neutral-300" />)}
+     {!isSignInForm && (<input ref={name} type="text" placeholder="Full Name" className="w-72 h-11 p-2 my-2 bg-neutral-400 bg-opacity-50 rounded-md ring-1 ring-neutral-300" />)}
 
     <input ref={email} type="text" placeholder="Email Address" className="w-72 h-11 p-2 my-2 bg-neutral-400 bg-opacity-50 rounded-md ring-1 ring-neutral-300" />
     
