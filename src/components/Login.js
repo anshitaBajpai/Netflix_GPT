@@ -4,15 +4,15 @@ import {useState,useRef} from 'react'
 import { checkValidData } from '../utils/validate';
 import {createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile } from "firebase/auth";
 import{auth} from '../utils/firebase'
-import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { addUser } from '../utils/userSlice';
+import { USER_AVATAR } from '../utils/constants';
 
 
 const Login = () => {
   const [isSignInForm,setIsSigInForm]=useState(true);
   const [errorMessage,setErrorMessage]=useState(null)
-  const navigate=useNavigate();
+  
   const dispatch=useDispatch();
 
 const name=useRef(null)
@@ -32,11 +32,11 @@ if(!isSignInForm){
   .then((userCredential) => {
     const user = userCredential.user;
     updateProfile(user, {
-      displayName: name.current.value , photoURL: "https://occ-0-4409-3646.1.nflxso.net/dnm/api/v6/vN7bi_My87NPKvsBoib006Llxzg/AAAABYh1GXyzHI-IqH5gUm3DHnqwmPCTLO5rmui76NzrDHgzMA7or4fZQUjLBsrXzx0JiwagUlQSf7Wiu4yI-A4hfpwleGn8R3g.png?r=54d"
+      displayName: name.current.value , photoURL:USER_AVATAR
     }).then(() => {
       const {uid, email, displayName, photoURL} = auth.currentUser;
       dispatch(addUser({uid:uid, email:email, displayName:displayName, photoURL:photoURL}))
-      navigate("/browse");
+      
     }).catch((error) => {
       setErrorMessage(error.message)
     });
@@ -56,8 +56,7 @@ else{
     .then((userCredential) => {
       // Signed in 
       const user = userCredential.user;
-      console.log(user)
-      navigate("/browse");
+     
     })
     .catch((error) => {
       const errorCode = error.code;
@@ -83,7 +82,7 @@ else{
     <img 
     className=""
     src="https://assets.nflxext.com/ffe/siteui/vlv3/9134db96-10d6-4a64-a619-a21da22f8999/a449fabb-05e4-4c8a-b062-b0bec7d03085/IN-en-20240115-trifectadaily-perspective_alpha_website_small.jpg"
-    alt="Logo"/>
+    alt="Background Img"/>
     </div>
     <form onSubmit={(e)=> e.preventDefault()} 
      className="bg-opacity-90 w-[24rem] h-[30rem] absolute p-12 bg-gray-950 text-white my-36 mx-auto left-10 right-10">
