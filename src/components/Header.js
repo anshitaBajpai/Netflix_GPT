@@ -7,12 +7,13 @@ import { addUser, removeUser } from '../utils/userSlice';
 import { LOGO, SUPPORTED_LANGUAGES } from '../utils/constants';
 import { toggleGptSearchView } from '../utils/gptSlice';
 import { changeLanguage } from '../utils/configSlice';
-import GptSearch from './GptSearch';
+
 
 const Header = () => {
   const dispatch=useDispatch();
 const navigate=useNavigate();
 const user=useSelector(store=>store.user);
+const showGptSearch=useSelector((store)=>store.gpt.showGptSearch);
 const handleSignOut=()=>{
  
   signOut(auth).then(() => {
@@ -56,14 +57,14 @@ dispatch(changeLanguage(e.target.value));
         src={LOGO} alt="Logo"/>
 
          {user && (<div className=" flex p-2">
-         <select className="bg-gray-900 text-white m-4 p-2 rounded-lg" onChange={handleLanguageChange}>
+        { showGptSearch && (<select className="bg-gray-900 text-white m-4 p-2 rounded-lg" onChange={handleLanguageChange}>
           {SUPPORTED_LANGUAGES.map((lang)=><option key={lang.identifier} value={lang.identifier}>{lang.name}</option>)}
           
-         </select>
-          <button className=" px-7 m-5 rounded-lg bg-red-700 text-white" onClick={handleGptSearchClick}>GPT Search</button>
+         </select>)}
+          <button className=" px-7 m-5 rounded-lg bg-red-700 text-white" onClick={handleGptSearchClick}>{showGptSearch?"Homepage":"Gpt Search"}</button>
           <img className="w-9 h-9 rounded-lg " src={user?.photoURL}
           alt="usericon"/>
-          <button onClick={handleSignOut} className=" m-2 p-1 rounded-xl" >Sign Out</button>
+          <button onClick={handleSignOut} className=" m-2 p-1 rounded-xl text-white" >Sign Out</button>
          </div>)}
         
     </div>
