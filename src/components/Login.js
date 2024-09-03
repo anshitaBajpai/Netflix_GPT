@@ -80,12 +80,12 @@ else{
       <Header/>
     <div className="absolute" >
     <img 
-    className=""
+    className="h-screen object-cover md:w-screen"
     src={BG_IMG_URL}
     alt="Background Img"/>
     </div>
     <form onSubmit={(e)=> e.preventDefault()} 
-     className="bg-opacity-90 w-[24rem] h-[30rem] absolute p-12 bg-gray-950 text-white my-36 mx-auto left-10 right-10">
+     className="bg-opacity-90 w-full right-0 left-0  md:w-[24rem] md:h-[30rem] absolute p-12 bg-gray-950 text-white my-36 mx-auto md:left-10 md:right-10">
 
     <h1 className="text-3xl font-bold px-2 leading-loose" >{isSignInForm? "Sign In" : "Sign Up"}</h1>
 
