@@ -1,12 +1,19 @@
+
+import { Outlet } from 'react-router-dom';
 import { Provider } from 'react-redux';
-import Body from './components/Body';
-import appStore from './utils/appStore';
 
+import './App.css';
+import Layout from './layout/Layout';
+import appStore from './stores/appStore';
 
-function App() {
+const App = () => {
   return (
-    <Provider store={appStore}><Body/></Provider>
-  );
+    <Provider store={appStore}>
+      <Layout>
+        <Outlet />
+      </Layout>
+    </Provider>
+  )
 }
 
 export default App;

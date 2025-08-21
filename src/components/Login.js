@@ -1,11 +1,11 @@
 import React from 'react'
 import Header from './Header'
 import {useState,useRef} from 'react'
-import { checkValidData } from '../utils/validate';
+import validate from '../validator/validate';
 import {createUserWithEmailAndPassword,signInWithEmailAndPassword,updateProfile } from "firebase/auth";
-import{auth} from '../utils/firebase'
+import { auth } from '../services/firebase'
 import { useDispatch } from 'react-redux';
-import { addUser } from '../utils/userSlice';
+import { addUser } from '../stores/userSlice';
 import { BG_IMG_URL, USER_AVATAR } from '../utils/constants';
 
 
@@ -21,7 +21,7 @@ const name=useRef(null)
 
   const handleButtonClick=()=>{
   //Validate form data
-const message=checkValidData(email.current.value,password.current.value);
+const message = validate(email.current.value, password.current.value);
 setErrorMessage(message);
 
 if(message) return;

@@ -1,13 +1,110 @@
-import React from 'react'
-import { IMG_CDN_URL } from '../utils/constants'
+import React, { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { LazyLoadImage } from "react-lazy-load-image-component";
+import { TMDB_CDN_URL } from "../services/tmdb";
+import { createPortal } from "react-dom";
+import MovieCardHover from "./MovieCardHover";
+import { PAGE } from "../router/routes";
+import { NO_POSTER } from "../utils/constants";
 
-const MovieCard = ({posterPath}) => {
-  if(!posterPath) return null;
+const MovieCard = ({ data }) => {
+
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [centerPosition, setCenterPosition] = useState({ left: 0, right: 0, top: 0, bottom: 0 });
+  const hoverTimeout = useRef();
+  const cardRef = useRef(null);
+
+  const handleHover = () => {
+    if (data) {
+      clearTimeout(hoverTimeout.current);
+      hoverTimeout.current = setTimeout(() => {
+        setHovered(true);
+        if (cardRef.current) {
+          const triggerRect = cardRef.current.getBoundingClientRect();
+          const offsetFromTop = triggerRect.top + window.scrollY;
+          const positionFromRight = window.innerWidth - triggerRect.right;
+          setCenterPosition({
+            left: triggerRect.left,
+            right: positionFromRight,
+            top: offsetFromTop,
+            bottom: offsetFromTop,
+          });
+        }
+      }, 400); // Reduced delay for snappier UI
+    }
+  };
+
+  const handleLeave = () => {
+    clearTimeout(hoverTimeout.current);
+    setHovered(false);
+  };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLargeScreen(window.innerWidth > 1024);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initialize isLargeScreen
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  if (!data) return null;
+
+  const { id, title, poster_path, backdrop_path } = data;
+
   return (
-    <div className="w-36 md:w-56 pr-3">
-      <img alt ="Movie Card" src={IMG_CDN_URL+posterPath}/>
+    <div
+      className={`movie-card cursor-pointer ${hovered ? "hovered" : ""}`}
+      onMouseEnter={handleHover}
+      onMouseLeave={handleLeave}
+      ref={cardRef}
+      tabIndex={0}
+      onFocus={handleHover}
+      onBlur={handleLeave}
+      style={{ outline: hovered ? '2px solid #e50914' : 'none', outlineOffset: 2 }}
+    >
+      <div className='movie-thumb aspect-[2/3] bg-shimmer overflow-hidden rounded'>
+        <Link to={`${PAGE.WATCH}/${id}`}>
+          <LazyLoadImage src={
+            poster_path !== null
+              ? `${TMDB_CDN_URL}/w400${poster_path}`
+              : backdrop_path !== null
+                ? `${TMDB_CDN_URL}/w400${backdrop_path}`
+                : NO_POSTER
+          }
+            className='hover:scale-110 w-full h-full object-cover' style={{ transition: '0.9s' }}
+            alt={title}
+          />
+        </Link>
+      </div>
+      {hovered && isLargeScreen &&
+        createPortal(
+          <MovieCardHover data={data} centerPosition={centerPosition} hovered={true} />,
+          document.body
+        )
+      }
     </div>
   );
 };
 
-export default MovieCard
+export const WithTrending = (MovieCard) => {
+  return (props) => {
+    const { index } = props;
+    return (
+      <div className="trending-card relative">
+        <div className="text-[80px] md:text-[200px] trending-number w-full h-full flex justify-start items-center absolute left-0">{index}</div>
+        <div className='w-32 ml-auto relative z-10'>
+          <MovieCard {...props} />
+        </div>
+      </div>
+    )
+  }
+}
+
+
+export default MovieCard;

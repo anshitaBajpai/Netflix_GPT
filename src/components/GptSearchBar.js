@@ -1,51 +1,123 @@
-import React, { useRef } from 'react'
-import lang from '../utils/languageConstatnts'
-import { useDispatch, useSelector } from 'react-redux';
-import client from '../utils/openai';
-import { API_OPTIONS } from '../utils/constants';
-import { addGptMovieResult } from '../utils/gptSlice';
+import { useState } from "react"
+import openai from "../services/openai";
+import { TMDB_API_URL, TMDB_OPTIONS } from "../services/tmdb";
+import { useDispatch, useSelector } from "react-redux";
+import { setGptSearch } from "../stores/searchSlice";
+import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 
-const GptSearchBar = () => {
-  const dispatch=useDispatch();
-  const langKey=useSelector((store=>store.config.lang));
-const searchText=useRef(null);
+const GptSearchBar = ({ searchOpacity }) => {
+  const userEmail = useSelector((store) => store?.user?.email);
+  const [user, setUser] = useState(userEmail)
+  const [loadingBtn, setLoadingBtn] = useState(false);
+  const [searchPrompt, setSearchPrompt] = useState('');
+  const dispatch = useDispatch();
 
-const searchMovieTMDB= async(movie)=>{
-  const data=await fetch("https://api.themoviedb.org/3/search/"+movie+"?include_adult=false&language=en-US&page=1", API_OPTIONS);
-  const json=await data.json();
-  return json.results;
-}
+  const handlePrompt = (event) => {
+    setSearchPrompt(event.target.value)
+  }
 
-  const handleGptSearchClick=async()=>{
+  const handleClearPrompt = () => {
+    setSearchPrompt('')
+  }
 
-    const gptQuery="Act as a movie recommendation system and suggest some movies for the query:" +searchText.current.value+
-    ". Only give me the name of 5 movies, comma separated like the example given ahead. Example: Run, Jab we met, Hera pheri, Hungama, Hulchul";
-
-    const gptResults=await client.chat.completions.create({
-      messages: [{ role: 'user', content: gptQuery }],
-      model: 'gpt-3.5-turbo',
-    });
-
-    if(!gptResults.choices){
-      //Error handling
-      //<div><h1>Sorry results not found</h1></div>
+  const searchMovies = async (endpoint, query) => {
+    try {
+      const response = await fetch(`${TMDB_API_URL}/search/${endpoint}?query=${encodeURIComponent(query)}&language=en-US&page=1`, TMDB_OPTIONS);
+      const results = await response.json();
+      return results;
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      return { results: [] }; // safe fallback
     }
+  }
 
-    console.log(gptResults.choices?.[0]?.message?.content);
-    const gptMovies=gptResults.choices?.[0]?.message?.content.split(",");
+  const handleSearch = async () => {
+    setLoadingBtn(true);
+    try {
+      const prompt = `
+        Act as a movie recommendation system and suggest some movies for the query : ${searchPrompt}.
+        Only give me name of 5 movies with comma separated.
+        Result should always look like - Spider Man, Elemental, Phir Hera Pheri
+      `;
 
-    const promiseArray=gptMovies.map((movie)=>searchMovieTMDB(movie));//will return 5 promises
-    const tmdbResults=await Promise.all(promiseArray);
-    dispatch(addGptMovieResult({movieNames:gptMovies, movieResults:tmdbResults}));
+      const gptResponse = await openai.chat.completions.create({
+        messages: [{ role: 'user', content: prompt }],
+        model: 'gpt-3.5-turbo',
+      });
+
+      const gptResults = gptResponse?.choices[0]?.message?.content.split(", ");
+
+      // Fetch movies for each GPT-suggested title with exact match
+      const data = await Promise.all(
+        gptResults.map(async (title) => {
+          const res = await searchMovies('movie', title);
+          if (res?.results) {
+            const exactMatch = res.results.filter(
+              (movie) => movie.title.toLowerCase() === title.toLowerCase() && movie.poster_path
+            );
+            return { ...res, results: exactMatch.slice(0, 5) }; 
+          }
+          return { results: [] };
+        })
+      );
+
+      setLoadingBtn(false);
+
+      dispatch(setGptSearch({ searchResults: gptResults, actionType: 'gptResults' }));
+      dispatch(setGptSearch({ searchResults: data, actionType: 'movies' }));
+    } catch (error) {
+      console.error('Error:', error);
+      setLoadingBtn(false);
+    }
   }
 
   return (
-    <div className="pt-[40%] md:pt-[10%] flex justify-center" >
-        <form className="w-[90%] md:w-1/2 bg-black grid grid-cols-12 rounded-lg" onSubmit={(e)=>e.preventDefault()}>
-            <input ref={searchText} type="text" className="p-4 m-2 h-10 rounded-lg col-span-9" placeholder={lang[langKey].gptSearchPlaceholder}/>
-            <button className="m-2 py-2 px-4 bg-red-700 text-white rounded-lg col-span-3" onClick={handleGptSearchClick}>{lang[langKey].search}</button>
+    <>
+      <div className="px-4 md:px-12 py-3 text-white max-w-4xl text-center m-auto mt-12">
+        <h1 className="text-3xl md:text-5xl mb-3 font-bold">Let AI be your Movie Guru!</h1>
+        
+      </div>
+      <div className="px-4 md:px-12 py-3 sticky top-[68px] z-[99999]" style={{ background: `rgba(20, 20, 20, ${searchOpacity})` }}>
+        <form onSubmit={(e) => e.preventDefault()}>
+          <div className="flex gap-1">
+            <div className="text-white relative w-full">
+              <span className='icon-fill text-gray-400 text-[22px] md:mt-0 md:text-[36px] absolute left-4 top-[16px] md:top-5 hidden md:block'>
+                <SearchOutlinedIcon style={{ fontSize: '32px' }} />
+              </span>
+              <input
+                type="text"
+                placeholder="Search Movies, Show and more"
+                className={`py-4 md:py-6 pl-4 pr-12 md:px-14 w-full bg-gray-600 bg-opacity-70 rounded focus:bg-opacity-100 focus-visible:outline-none text-lg`}
+                onChange={handlePrompt}
+                value={searchPrompt}
+              />
+
+              {searchPrompt && <span className='icon-fill text-[28px] mt-0 md:text-[36px] absolute right-4 top-4 md:top-5 cursor-pointer' onClick={handleClearPrompt}>
+                <CloseIcon style={{ fontSize: '32px' }} />
+              </span>}
+            </div>
+            <button
+              className={`py-4 md:py-6 w-24 px-2 md:px-5 flex items-center justify-center bg-red-primary rounded text-white disabled:bg-red-800`}
+              onClick={handleSearch}
+              disabled={searchPrompt === '' ? true : false}
+            >
+              {
+                loadingBtn ?
+                  <div className="w-5 h-5 border-t m border-gray-300 border-solid rounded-full animate-spin"></div>
+                  :
+                  <>
+                    <span className='icon-fill text-[22px] md:text-[32px] md:hidden'>
+                      <SearchOutlinedIcon style={{ fontSize: '28px' }} />
+                    </span>
+                    <span className='hidden md:inline-block'>Search</span>
+                  </>
+              }
+            </button>
+          </div>
         </form>
-    </div>
+      </div>
+    </>
   )
 }
 
