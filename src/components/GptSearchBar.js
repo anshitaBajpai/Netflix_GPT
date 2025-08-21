@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState } from "react";
 import openai from "../services/openai";
 import { TMDB_API_URL, TMDB_OPTIONS } from "../services/tmdb";
 import { useDispatch, useSelector } from "react-redux";
@@ -8,82 +8,128 @@ import CloseIcon from '@mui/icons-material/Close';
 
 const GptSearchBar = ({ searchOpacity }) => {
   const userEmail = useSelector((store) => store?.user?.email);
-  const [user, setUser] = useState(userEmail)
+  const [user] = useState(userEmail);
   const [loadingBtn, setLoadingBtn] = useState(false);
   const [searchPrompt, setSearchPrompt] = useState('');
   const dispatch = useDispatch();
 
   const handlePrompt = (event) => {
-    setSearchPrompt(event.target.value)
-  }
+    setSearchPrompt(event.target.value);
+  };
 
   const handleClearPrompt = () => {
-    setSearchPrompt('')
-  }
+    setSearchPrompt('');
+  };
 
   const searchMovies = async (endpoint, query) => {
     try {
-      const response = await fetch(`${TMDB_API_URL}/search/${endpoint}?query=${encodeURIComponent(query)}&language=en-US&page=1`, TMDB_OPTIONS);
+      const response = await fetch(
+        `${TMDB_API_URL}/search/${endpoint}?query=${encodeURIComponent(query)}&language=en-US&page=1`,
+        TMDB_OPTIONS
+      );
       const results = await response.json();
       return results;
     } catch (error) {
       console.error('Error fetching movies:', error);
-      return { results: [] }; // safe fallback
+      return { results: [] };
     }
-  }
+  };
 
   const handleSearch = async () => {
+    if (!searchPrompt) return;
     setLoadingBtn(true);
+
     try {
-      const prompt = `
-        Act as a movie recommendation system and suggest some movies for the query : ${searchPrompt}.
-        Only give me name of 5 movies with comma separated.
-        Result should always look like - Spider Man, Elemental, Phir Hera Pheri
+      // Step 1: Ask GPT if it's a single movie or a list query
+      const classifyPrompt = `
+        Tell me if this query is asking for a single movie or multiple movies: "${searchPrompt}".
+        Respond with only "single" or "multiple".
       `;
 
-      const gptResponse = await openai.chat.completions.create({
-        messages: [{ role: 'user', content: prompt }],
+      const classifyResponse = await openai.chat.completions.create({
+        messages: [{ role: 'user', content: classifyPrompt }],
         model: 'gpt-3.5-turbo',
       });
 
-      const gptResults = gptResponse?.choices[0]?.message?.content.split(", ");
+      const type = classifyResponse?.choices[0]?.message?.content?.toLowerCase().trim();
 
-      // Fetch movies for each GPT-suggested title with exact match
-      const data = await Promise.all(
-        gptResults.map(async (title) => {
-          const res = await searchMovies('movie', title);
-          if (res?.results) {
-            const exactMatch = res.results.filter(
-              (movie) => movie.title.toLowerCase() === title.toLowerCase() && movie.poster_path
-            );
-            return { ...res, results: exactMatch.slice(0, 5) }; 
-          }
-          return { results: [] };
-        })
-      );
+      if (type === "single") {
+        // Step 2a: Correct / Normalize the movie name
+        const correctionPrompt = `
+          The user entered: "${searchPrompt}".
+          Correct the name if it has spelling mistakes or is incomplete.
+          Reply with only the corrected official movie title.
+        `;
+
+        const correctionResponse = await openai.chat.completions.create({
+          messages: [{ role: 'user', content: correctionPrompt }],
+          model: 'gpt-3.5-turbo',
+        });
+
+        const correctedMovie = correctionResponse?.choices[0]?.message?.content?.trim();
+
+        // Step 3a: Search TMDB for only this corrected movie
+        const res = await searchMovies("movie", correctedMovie);
+        const exactMatch = res?.results?.filter(
+          (movie) => movie.title.toLowerCase() === correctedMovie.toLowerCase() && movie.poster_path
+        );
+
+        dispatch(setGptSearch({ searchResults: [correctedMovie], actionType: 'gptResults' }));
+        dispatch(setGptSearch({ searchResults: [{ results: exactMatch.slice(0, 1) }], actionType: 'movies' }));
+      } else {
+        // Step 2b: Ask GPT for multiple movie suggestions
+        const prompt = `
+          Act as a movie recommendation system and suggest some movies for the query: ${searchPrompt}.
+          Only give me names of up to 5 movies, comma separated.
+          Example: Spider Man, Elemental, Phir Hera Pheri
+        `;
+
+        const gptResponse = await openai.chat.completions.create({
+          messages: [{ role: 'user', content: prompt }],
+          model: 'gpt-3.5-turbo',
+        });
+
+        const gptResults = gptResponse?.choices[0]?.message?.content.split(", ");
+
+        // Fetch movies for each GPT-suggested title
+        const data = await Promise.all(
+          gptResults.map(async (title) => {
+            const res = await searchMovies('movie', title);
+            if (res?.results) {
+              const exactMatch = res.results.filter(
+                (movie) => movie.title.toLowerCase() === title.toLowerCase() && movie.poster_path
+              );
+              return { ...res, results: exactMatch.slice(0, 5) };
+            }
+            return { results: [] };
+          })
+        );
+
+        dispatch(setGptSearch({ searchResults: gptResults, actionType: 'gptResults' }));
+        dispatch(setGptSearch({ searchResults: data, actionType: 'movies' }));
+      }
 
       setLoadingBtn(false);
-
-      dispatch(setGptSearch({ searchResults: gptResults, actionType: 'gptResults' }));
-      dispatch(setGptSearch({ searchResults: data, actionType: 'movies' }));
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
       setLoadingBtn(false);
     }
-  }
+  };
 
   return (
     <>
       <div className="px-4 md:px-12 py-3 text-white max-w-4xl text-center m-auto mt-12">
         <h1 className="text-3xl md:text-5xl mb-3 font-bold">Let AI be your Movie Guru!</h1>
-        
       </div>
-      <div className="px-4 md:px-12 py-3 sticky top-[68px] z-[99999]" style={{ background: `rgba(20, 20, 20, ${searchOpacity})` }}>
+      <div
+        className="px-4 md:px-12 py-3 sticky top-[68px] z-[99999]"
+        style={{ background: `rgba(20, 20, 20, ${searchOpacity})` }}
+      >
         <form onSubmit={(e) => e.preventDefault()}>
           <div className="flex gap-1">
             <div className="text-white relative w-full">
-              <span className='icon-fill text-gray-400 text-[22px] md:mt-0 md:text-[36px] absolute left-4 top-[16px] md:top-5 hidden md:block'>
-                <SearchOutlinedIcon style={{ fontSize: '32px' }} />
+              <span className="icon-fill text-gray-400 text-[22px] md:mt-0 md:text-[36px] absolute left-4 top-[16px] md:top-5 hidden md:block">
+                <SearchOutlinedIcon style={{ fontSize: "32px" }} />
               </span>
               <input
                 type="text"
@@ -93,32 +139,36 @@ const GptSearchBar = ({ searchOpacity }) => {
                 value={searchPrompt}
               />
 
-              {searchPrompt && <span className='icon-fill text-[28px] mt-0 md:text-[36px] absolute right-4 top-4 md:top-5 cursor-pointer' onClick={handleClearPrompt}>
-                <CloseIcon style={{ fontSize: '32px' }} />
-              </span>}
+              {searchPrompt && (
+                <span
+                  className="icon-fill text-[28px] mt-0 md:text-[36px] absolute right-4 top-4 md:top-5 cursor-pointer"
+                  onClick={handleClearPrompt}
+                >
+                  <CloseIcon style={{ fontSize: "32px" }} />
+                </span>
+              )}
             </div>
             <button
               className={`py-4 md:py-6 w-24 px-2 md:px-5 flex items-center justify-center bg-red-primary rounded text-white disabled:bg-red-800`}
               onClick={handleSearch}
-              disabled={searchPrompt === '' ? true : false}
+              disabled={searchPrompt === ""}
             >
-              {
-                loadingBtn ?
-                  <div className="w-5 h-5 border-t m border-gray-300 border-solid rounded-full animate-spin"></div>
-                  :
-                  <>
-                    <span className='icon-fill text-[22px] md:text-[32px] md:hidden'>
-                      <SearchOutlinedIcon style={{ fontSize: '28px' }} />
-                    </span>
-                    <span className='hidden md:inline-block'>Search</span>
-                  </>
-              }
+              {loadingBtn ? (
+                <div className="w-5 h-5 border-t m border-gray-300 border-solid rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <span className="icon-fill text-[22px] md:text-[32px] md:hidden">
+                    <SearchOutlinedIcon style={{ fontSize: "28px" }} />
+                  </span>
+                  <span className="hidden md:inline-block">Search</span>
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
     </>
-  )
-}
+  );
+};
 
-export default GptSearchBar
+export default GptSearchBar;
