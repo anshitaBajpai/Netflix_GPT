@@ -1,5 +1,5 @@
 import { useState } from "react";
-import openai from "../services/openai";
+import { getGptResponse } from "../services/api";
 import { TMDB_API_URL, TMDB_OPTIONS } from "../services/tmdb";
 import { useDispatch, useSelector } from "react-redux";
 import { setGptSearch } from "../stores/searchSlice";
@@ -46,12 +46,8 @@ const GptSearchBar = ({ searchOpacity }) => {
         Respond with only "single" or "multiple".
       `;
 
-      const classifyResponse = await openai.chat.completions.create({
-        messages: [{ role: 'user', content: classifyPrompt }],
-        model: 'gpt-3.5-turbo',
-      });
-
-      const type = classifyResponse?.choices[0]?.message?.content?.toLowerCase().trim();
+  const classifyData = await getGptResponse(classifyPrompt);
+  const type = classifyData?.reply?.toLowerCase().trim();
 
       if (type === "single") {
         // Step 2a: Correct / Normalize the movie name
@@ -61,12 +57,8 @@ const GptSearchBar = ({ searchOpacity }) => {
           Reply with only the corrected official movie title.
         `;
 
-        const correctionResponse = await openai.chat.completions.create({
-          messages: [{ role: 'user', content: correctionPrompt }],
-          model: 'gpt-3.5-turbo',
-        });
-
-        const correctedMovie = correctionResponse?.choices[0]?.message?.content?.trim();
+  const correctionData = await getGptResponse(correctionPrompt);
+  const correctedMovie = correctionData?.reply?.trim();
 
         // Step 3a: Search TMDB for only this corrected movie
         const res = await searchMovies("movie", correctedMovie);
@@ -84,12 +76,8 @@ const GptSearchBar = ({ searchOpacity }) => {
           Example: Spider Man, Elemental, Phir Hera Pheri
         `;
 
-        const gptResponse = await openai.chat.completions.create({
-          messages: [{ role: 'user', content: prompt }],
-          model: 'gpt-3.5-turbo',
-        });
-
-        const gptResults = gptResponse?.choices[0]?.message?.content.split(", ");
+  const gptData = await getGptResponse(prompt);
+  const gptResults = gptData?.reply?.split(", ");
 
         // Fetch movies for each GPT-suggested title
         const data = await Promise.all(
