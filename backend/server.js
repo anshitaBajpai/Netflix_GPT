@@ -2,23 +2,34 @@ import express from "express";
 import dotenv from "dotenv";
 import OpenAI from "openai";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
-const app = express();
-app.use(express.json());
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Allow frontend to access this backend
+const app = express();
+
+
+app.use(express.json());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "*", // replace with your frontend URL in production
+  origin: process.env.FRONTEND_URL || "*", 
 }));
 
-// Initialize OpenAI with API key from .env
+
+app.use(express.static(path.join(__dirname, "public")));
+
+// ✅ Serve React build (after npm run build)
+app.use(express.static(path.join(__dirname, "build")));
+
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Route to handle GPT requests
+
 app.post("/api/gpt", async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -30,11 +41,18 @@ app.post("/api/gpt", async (req, res) => {
 
     res.json({ reply: response.choices[0].message.content });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Something went wrong" });
+    console.error("❌ GPT API Error:", error);
+    res.status(500).json({ error: "Something went wrong with GPT request" });
   }
 });
 
-// Start backend server
+// ✅ For React Router → return index.html for unknown routes
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
+});
+
+// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Backend running on http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`🚀 Server running at http://localhost:${PORT}`)
+);
