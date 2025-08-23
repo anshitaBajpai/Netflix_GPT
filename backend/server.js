@@ -12,24 +12,21 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-
 app.use(express.json());
+
+// ✅ Allow only your frontend URL in production
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "*", 
+  origin: process.env.FRONTEND_URL || "*",
 }));
 
-
+// ✅ Serve static files only from "public" (e.g. images, logos)
 app.use(express.static(path.join(__dirname, "public")));
-
-// ✅ Serve React build (after npm run build)
-app.use(express.static(path.join(__dirname, "build")));
-
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-
+// ✅ API Route
 app.post("/api/gpt", async (req, res) => {
   try {
     const { prompt } = req.body;
@@ -46,13 +43,9 @@ app.post("/api/gpt", async (req, res) => {
   }
 });
 
-// ✅ For React Router → return index.html for unknown routes
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "build", "index.html"));
-});
 
-// Start server
+// ✅ Start backend server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
-  console.log(`🚀 Server running at http://localhost:${PORT}`)
+  console.log(`🚀 Backend running at http://localhost:${PORT}`)
 );
