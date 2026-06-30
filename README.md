@@ -1,6 +1,7 @@
 # 🎬 Netflix-GPT
 
-A sleek, modern **Netflix clone** built with **ReactJS**, powered by **OpenAI GPT** for smarter movie suggestions, and integrated with **TMDB** for real-time movie data. It also features secure **Firebase Authentication**, including Google Sign-In.
+A full-stack Netflix-like application powered by React, Redux, Firebase Authentication, TMDB API, and OpenAI GPT API.
+Users can sign up/login, search for movies, and get AI-powered movie recommendations via GPT.
 
 ---
 
@@ -38,3 +39,14 @@ A sleek, modern **Netflix clone** built with **ReactJS**, powered by **OpenAI GP
 ## 🛠️ Project Setup
 
 Before starting the project please create .env file and add TMDB and OPENAI KEY into it.
+
+---
+
+## 📸 Screenshots
+
+<img width="1919" height="864" alt="image" src="https://github.com/user-attachments/assets/c0d9e7df-e3d8-4902-b142-9124135d7e68" />
+
+---
+<img width="1917" height="861" alt="image" src="https://github.com/user-attachments/assets/e0a8dc20-2698-4b98-a2da-88f5819922cc" />
+
+
