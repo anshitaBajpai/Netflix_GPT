@@ -14,7 +14,7 @@ const Watch = () => {
     return () => {
       dispatch(setPlayer({ playerState: 'playing', playerData: null }))
     }
-  }, [])
+  }, [dispatch])
 
   usePlayer('movie', 'playing', contentId);
 
@@ -27,7 +27,7 @@ const Watch = () => {
   if (videos?.results?.length <= 0) return <VideoNotFound data={{ original_title, backdrop_path }} />;
 
   const { key } = videos.results[0];
-  if (!key) return;
+  if (!key) return null;
 
   return (
     <div className="h-screen w-screen">
@@ -42,7 +42,7 @@ const Watch = () => {
 }
 
 const VideoNotFound = ({ data }) => {
-  const { backdrop_path, original_title, message } = data;
+  const { backdrop_path, original_title } = data;
   return (
     <div className='w-screen h-screen'>
       <div className='w-full h-full'>

@@ -1,4 +1,4 @@
-import { createHashRouter, createBrowserRouter, useNavigate } from "react-router-dom";
+import { createHashRouter, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import loadable from '@loadable/component'

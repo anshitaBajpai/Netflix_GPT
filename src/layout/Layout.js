@@ -41,7 +41,7 @@ const Layout = ({ children }) => {
 
   
     return () => unsubscribe();
-  }, []);
+  }, [dispatch]);
 
   const isLogged = useSelector((store) => store.authenticated);
   if (isLogged === null) return <Spinner />

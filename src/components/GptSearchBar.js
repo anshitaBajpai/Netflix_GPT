@@ -3,12 +3,12 @@ import { getGptResponse } from "../services/api";
 import { TMDB_API_URL, TMDB_OPTIONS } from "../services/tmdb";
 import { useDispatch } from "react-redux";
 import { setGptSearch } from "../stores/searchSlice";
-import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
-import CloseIcon from '@mui/icons-material/Close';
+import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
+import CloseIcon from "@mui/icons-material/Close";
 
 const GptSearchBar = ({ searchOpacity }) => {
   const [loadingBtn, setLoadingBtn] = useState(false);
-  const [searchPrompt, setSearchPrompt] = useState('');
+  const [searchPrompt, setSearchPrompt] = useState("");
   const dispatch = useDispatch();
 
   const handlePrompt = (event) => {
@@ -16,19 +16,19 @@ const GptSearchBar = ({ searchOpacity }) => {
   };
 
   const handleClearPrompt = () => {
-    setSearchPrompt('');
+    setSearchPrompt("");
   };
 
   const searchMovies = async (endpoint, query) => {
     try {
       const response = await fetch(
         `${TMDB_API_URL}/search/${endpoint}?query=${encodeURIComponent(query)}&language=en-US&page=1`,
-        TMDB_OPTIONS
+        TMDB_OPTIONS,
       );
       const results = await response.json();
       return results;
     } catch (error) {
-      console.error('Error fetching movies:', error);
+      console.error("Error fetching movies:", error);
       return { results: [] };
     }
   };
@@ -44,8 +44,8 @@ const GptSearchBar = ({ searchOpacity }) => {
         Respond with only "single" or "multiple".
       `;
 
-  const classifyData = await getGptResponse(classifyPrompt);
-  const type = classifyData?.reply?.toLowerCase().trim();
+      const classifyData = await getGptResponse(classifyPrompt);
+      const type = classifyData?.reply?.toLowerCase().trim();
 
       if (type === "single") {
         // Step 2a: Correct / Normalize the movie name
@@ -55,17 +55,29 @@ const GptSearchBar = ({ searchOpacity }) => {
           Reply with only the corrected official movie title.
         `;
 
-  const correctionData = await getGptResponse(correctionPrompt);
-  const correctedMovie = correctionData?.reply?.trim();
+        const correctionData = await getGptResponse(correctionPrompt);
+        const correctedMovie = correctionData?.reply?.trim();
 
         // Step 3a: Search TMDB for only this corrected movie
         const res = await searchMovies("movie", correctedMovie);
         const exactMatch = res?.results?.filter(
-          (movie) => movie.title.toLowerCase() === correctedMovie.toLowerCase() && movie.poster_path
+          (movie) =>
+            movie.title.toLowerCase() === correctedMovie.toLowerCase() &&
+            movie.poster_path,
         );
 
-        dispatch(setGptSearch({ searchResults: [correctedMovie], actionType: 'gptResults' }));
-        dispatch(setGptSearch({ searchResults: [{ results: exactMatch.slice(0, 1) }], actionType: 'movies' }));
+        dispatch(
+          setGptSearch({
+            searchResults: [correctedMovie],
+            actionType: "gptResults",
+          }),
+        );
+        dispatch(
+          setGptSearch({
+            searchResults: [{ results: exactMatch.slice(0, 1) }],
+            actionType: "movies",
+          }),
+        );
       } else {
         // Step 2b: Ask GPT for multiple movie suggestions
         const prompt = `
@@ -74,25 +86,29 @@ const GptSearchBar = ({ searchOpacity }) => {
           Example: Spider Man, Elemental, Phir Hera Pheri
         `;
 
-  const gptData = await getGptResponse(prompt);
-  const gptResults = gptData?.reply?.split(", ");
+        const gptData = await getGptResponse(prompt);
+        const gptResults = gptData?.reply?.split(", ");
 
         // Fetch movies for each GPT-suggested title
         const data = await Promise.all(
           gptResults.map(async (title) => {
-            const res = await searchMovies('movie', title);
+            const res = await searchMovies("movie", title);
             if (res?.results) {
               const exactMatch = res.results.filter(
-                (movie) => movie.title.toLowerCase() === title.toLowerCase() && movie.poster_path
+                (movie) =>
+                  movie.title.toLowerCase() === title.toLowerCase() &&
+                  movie.poster_path,
               );
               return { ...res, results: exactMatch.slice(0, 5) };
             }
             return { results: [] };
-          })
+          }),
         );
 
-        dispatch(setGptSearch({ searchResults: gptResults, actionType: 'gptResults' }));
-        dispatch(setGptSearch({ searchResults: data, actionType: 'movies' }));
+        dispatch(
+          setGptSearch({ searchResults: gptResults, actionType: "gptResults" }),
+        );
+        dispatch(setGptSearch({ searchResults: data, actionType: "movies" }));
       }
 
       setLoadingBtn(false);
@@ -105,7 +121,9 @@ const GptSearchBar = ({ searchOpacity }) => {
   return (
     <>
       <div className="px-4 md:px-12 py-3 text-white max-w-4xl text-center m-auto mt-12">
-        <h1 className="text-3xl md:text-5xl mb-3 font-bold">Let AI be your Movie Guru!</h1>
+        <h1 className="text-3xl md:text-5xl mb-3 font-bold">
+          Let AI be your Movie Guru!
+        </h1>
       </div>
       <div
         className="px-4 md:px-12 py-3 sticky top-[68px] z-[99999]"

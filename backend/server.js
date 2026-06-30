@@ -15,8 +15,9 @@ const app = express();
 app.use(express.json());
 
 // ✅ Allow only your frontend URL in production
+const allowedOrigin = process.env.FRONTEND_URL;
 app.use(cors({
-  origin: process.env.FRONTEND_URL || "*",
+  origin: allowedOrigin || false,
 }));
 
 // ✅ Serve static files only from "public" (e.g. images, logos)
