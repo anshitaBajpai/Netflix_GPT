@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import SwiperCore from 'swiper';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
@@ -10,15 +9,9 @@ import MovieCard, { WithTrending } from './MovieCard';
 SwiperCore.use([Navigation, Pagination]);
 
 const MovieSlider = ({ type, heading, data }) => {
-  const [slidesPerGroup, setSlidesPerGroup] = useState(2);
   const TrendingMovieCard = WithTrending(MovieCard);
 
-  const handleResize = () => {
-    const slidesInView = Math.floor(window.innerWidth / 144);  // Adjust 200 to your slide width
-    setSlidesPerGroup(slidesInView);
-  };
-
-  if (!data) return;
+  if (!data) return null;
   const movies = data.results;
 
   return (
@@ -33,7 +26,6 @@ const MovieSlider = ({ type, heading, data }) => {
         }}
         navigation={true}
         modules={[Navigation]}
-        onResize={handleResize}
         className="mySwiper flex overflow-visibleF"
       >
         {

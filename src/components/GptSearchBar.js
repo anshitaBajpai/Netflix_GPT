@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { getGptResponse } from "../services/api";
 import { TMDB_API_URL, TMDB_OPTIONS } from "../services/tmdb";
-import { useDispatch, useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
 import { setGptSearch } from "../stores/searchSlice";
 import SearchOutlinedIcon from '@mui/icons-material/SearchOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 
 const GptSearchBar = ({ searchOpacity }) => {
-  const userEmail = useSelector((store) => store?.user?.email);
-  const [user] = useState(userEmail);
   const [loadingBtn, setLoadingBtn] = useState(false);
   const [searchPrompt, setSearchPrompt] = useState('');
   const dispatch = useDispatch();
