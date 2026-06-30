@@ -6,29 +6,20 @@ const Search = () => {
   const [skinOpacity, setSkinOpacity] = useState(1);
   const [searchOpacity, setSearchOpacity] = useState(0);
 
-  const handleScroll = () => {
-    const scrollPosition = window.scrollY;
-    const threshold = 70;
-
-    if (scrollPosition < threshold) {
-      setSkinOpacity(1 - scrollPosition / threshold);
-    } else {
-      setSkinOpacity(0);
-    }
-
-    if (skinOpacity === 0) {
-      setSearchOpacity(1);
-    } else {
-      setSearchOpacity(0);
-    }
-  };
-
   useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const threshold = 70;
+
+      setSkinOpacity(scrollPosition < threshold ? 1 - scrollPosition / threshold : 0);
+      setSearchOpacity(scrollPosition >= threshold ? 1 : 0);
+    };
+
     window.addEventListener('scroll', handleScroll);
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [skinOpacity]);
+  }, []);
 
   return (
     <div className="search-page">
